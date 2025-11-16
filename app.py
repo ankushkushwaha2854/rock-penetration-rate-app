@@ -1,19 +1,72 @@
+import warnings
+warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 from xgboost import XGBRegressor
 import pickle
+import os
 
 # ------------------------------
-# Load model
+# SET BACKGROUND IMAGE
+# ------------------------------
+def set_background_image():
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background-image: url("https://images.unsplash.com/photo-1506905925346-21bda4d32df4");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        
+        /* Improve readability of content */
+        .main .block-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 3rem;
+            border-radius: 15px;
+            margin-top: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Style the header */
+        h1 {
+            color: #1f3d7a;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        /* Style the success message */
+        .stSuccess {
+            background-color: rgba(209, 231, 221, 0.9);
+            border: 1px solid rgba(56, 161, 105, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Apply background
+set_background_image()
+
+# ------------------------------
+# Load model and scaler safely
 # ------------------------------
 model = XGBRegressor()
-model.load_model("rop_model.json")
+BASE_DIR = os.path.dirname(__file__)
+model_path = os.path.join(BASE_DIR, "rop_model.json")
+scaler_path = os.path.join(BASE_DIR, "scaler.pkl")
 
-# ------------------------------
-# Load scaler
-# ------------------------------
-with open("scaler.pkl", "rb") as f:
+model.load_model(model_path)
+
+with open(scaler_path, "rb") as f:
     scaler = pickle.load(f)
 
 st.title("⛏️ Rock Penetration Rate Prediction (ROP)")
@@ -22,20 +75,25 @@ st.write("Enter drilling/mechanical & rock properties to predict penetration rat
 # ------------------------------
 # Input fields
 # ------------------------------
-rock_drill_power_kw = st.number_input("Rock Drill Power (kW)", value=14.0)
-blow_frequency_bpm = st.number_input("Blow Frequency (BPM)", value=2100.0)
-pulldown_pressure_bar = st.number_input("Pulldown Pressure (bar)", value=80.0)
-blow_pressure_bar = st.number_input("Blow Pressure (bar)", value=6.5)
-rotational_pressure_bar = st.number_input("Rotational Pressure (bar)", value=40.0)
-ucs_mpa = st.number_input("UCS (MPa)", value=85.0)
-tensile_strength_mpa = st.number_input("Tensile Strength (MPa)", value=5.0)
-point_load_strength_mpa = st.number_input("Point Load Strength (MPa)", value=3.2)
-p_wave = st.number_input("P-wave Velocity (km/s)", value=3.8)
-elastic_modulus_mpa = st.number_input("Elastic Modulus (MPa)", value=6000.0)
-density = st.number_input("Density (g/cm3)", value=2.7)
+col1, col2 = st.columns(2)
+
+with col1:
+    rock_drill_power_kw = st.number_input("Rock Drill Power (kW)", value=14.0)
+    blow_frequency_bpm = st.number_input("Blow Frequency (BPM)", value=2100.0)
+    pulldown_pressure_bar = st.number_input("Pulldown Pressure (bar)", value=80.0)
+    blow_pressure_bar = st.number_input("Blow Pressure (bar)", value=6.5)
+    rotational_pressure_bar = st.number_input("Rotational Pressure (bar)", value=40.0)
+    
+with col2:
+    ucs_mpa = st.number_input("UCS (MPa)", value=85.0)
+    tensile_strength_mpa = st.number_input("Tensile Strength (MPa)", value=5.0)
+    point_load_strength_mpa = st.number_input("Point Load Strength (MPa)", value=3.2)
+    p_wave = st.number_input("P-wave Velocity (km/s)", value=3.8)
+    elastic_modulus_mpa = st.number_input("Elastic Modulus (MPa)", value=6000.0)
+    density = st.number_input("Density (g/cm3)", value=2.7)
 
 # ------------------------------
-# CORRECT FEATURE ORDER (VERY IMPORTANT)
+# CORRECT FEATURE ORDER
 # ------------------------------
 cols = [
     'rock_drill_power_kw',
@@ -54,7 +112,8 @@ cols = [
 # ------------------------------
 # Predict button
 # ------------------------------
-if st.button("Predict ROP"):
+st.markdown("---")
+if st.button("🚀 Predict ROP", use_container_width=True):
     new_data = pd.DataFrame([[
         rock_drill_power_kw,
         blow_frequency_bpm,
@@ -76,3 +135,15 @@ if st.button("Predict ROP"):
     prediction = model.predict(scaled)[0]
 
     st.success(f"🔥 Predicted Penetration Rate (ROP): **{prediction:.3f} m/min**")
+    
+    # Additional visual feedback
+    st.balloons()
+
+# Footer
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #666;'>"
+    "Rock Penetration Rate Prediction App ⛏️"
+    "</div>",
+    unsafe_allow_html=True
+)
